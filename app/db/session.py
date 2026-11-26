@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from pathlib import Path
 
 from app.models.base import Base
-from app.models.auth import User, Room, RoomParticipant, Option, Vote
+from app.models.auth import UserORM, RoomORM, RoomParticipantORM, OptionORM, VoteORM
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 database_url = f"sqlite:///{BASE_DIR / 'dating-ideas.db'}"

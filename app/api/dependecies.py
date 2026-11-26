@@ -5,7 +5,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.models.auth import User
+from app.models.auth import UserORM
 
 from dotenv import load_dotenv
 
@@ -25,9 +25,9 @@ def get_db():
 def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
-) -> User:
+) -> UserORM:
     if DEV_MODE:
-        user = User()
+        user = UserORM()
         user.name = "dev_user"
         print(user)
         return user

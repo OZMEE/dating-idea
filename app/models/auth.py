@@ -6,7 +6,7 @@ from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, UniqueCons
 from app.models.base import Base
 
 
-class User(Base):
+class UserORM(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=False)
@@ -15,7 +15,7 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-class Room(Base):
+class RoomORM(Base):
     __tablename__ = "rooms"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)
@@ -26,7 +26,7 @@ class Room(Base):
     invite_code = Column(String, unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-class RoomParticipant(Base):
+class RoomParticipantORM(Base):
     __tablename__ = "room_participants"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -38,7 +38,7 @@ class RoomParticipant(Base):
         UniqueConstraint("room_id", "user_id", name="uq_room_user"),
     )
 
-class Option(Base):
+class OptionORM(Base):
     __tablename__ = "options"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -48,7 +48,7 @@ class Option(Base):
     description = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-class Vote(Base):
+class VoteORM(Base):
     __tablename__ = "votes"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

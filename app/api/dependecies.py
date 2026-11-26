@@ -7,8 +7,12 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.auth import User
 
+from dotenv import load_dotenv
+
+
 security = HTTPBearer(auto_error=False)
 
+load_dotenv()  # внедряет переменные из .env в окружение процесса
 DEV_MODE = os.getenv("ENV") == "development"
 
 def get_db():

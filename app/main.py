@@ -1,3 +1,5 @@
+import time
+
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
@@ -20,9 +22,9 @@ app.include_router(rooms_router)
 app.include_router(results_router)
 
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"]
 )
-

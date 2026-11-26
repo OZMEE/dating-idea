@@ -1,7 +1,13 @@
 from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import sessionmaker, Session
 
-database_url = "sqlite:///./dating-ideas.db"
+from pathlib import Path
+
+from app.models.base import Base
+from app.models.auth import User, Room, RoomParticipant, Option, Vote
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+database_url = f"sqlite:///{BASE_DIR / 'dating-ideas.db'}"
 #todo: вернуть эту конфигурацию, чтобы подключиться к postgres
 """
 settings = get_settings()
@@ -19,4 +25,5 @@ database_url = URL.create(
 # pool_pre_ping - нужен для проверки соединения
 engine = create_engine(database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker[Session](bind=engine, autoflush=False, autocommit=False)
+Base.metadata.create_all(bind=engine)
 print(database_url)

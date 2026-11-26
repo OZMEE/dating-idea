@@ -2,7 +2,7 @@ from fastapi import Depends, APIRouter
 from sqlalchemy.orm import Session
 
 from app.api.dependecies import get_current_user, get_db
-from app.models.auth import User
+from app.models.auth import UserORM
 from app.schemas.auth import RegisterRequest, LoginRequest, RefreshRequest, UserResponse
 
 auth_router = APIRouter(
@@ -26,5 +26,5 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)):
     raise NotImplementedError
 
 @auth_router.get("/me", response_model=UserResponse)
-def me(user: User = Depends(get_current_user)):
+def me(user: UserORM = Depends(get_current_user)):
     raise NotImplementedError

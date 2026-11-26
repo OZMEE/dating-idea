@@ -12,7 +12,7 @@ from app.api.routers.results import results_router
 
 
 
-app = FastAPI(title="Room Voting API", version="1.0.0")
+app = FastAPI(title="RoomORM Voting API", version="1.0.0")
 
 app.include_router(auth_router)
 app.include_router(options_router)

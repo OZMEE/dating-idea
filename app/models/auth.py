@@ -21,7 +21,7 @@ class Room(Base):
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     status = Column(String, nullable=False)
-    limit_participants = Column(Integer, nullable=False)
+    limit_participants = Column(Integer, nullable=True)
     deadline = Column(DateTime, nullable=True)
     invite_code = Column(String, unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

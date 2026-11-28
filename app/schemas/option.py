@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class CreateOptionRequest(BaseModel):
@@ -10,9 +11,9 @@ class CreateOptionRequest(BaseModel):
 
 
 class OptionOut(BaseModel):
-    id: str
-    room_id: str
-    participant_owner_id: Optional[str] = None
+    id: UUID
+    room_id: UUID
+    participant_owner_id: Optional[UUID] = None
     title: str
     description: str
     created_at: datetime

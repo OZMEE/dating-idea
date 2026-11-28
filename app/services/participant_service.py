@@ -1,57 +1,66 @@
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from uuid import UUID
 
-from app.models.auth import UserORM, RoomORM, RoomParticipantORM
+from app.models.auth import UserORM
+from app.models.participant import RoomParticipantORM
+from app.models.room import RoomORM
+from app.repositories.participant_repository import ParticipantRepository
 from app.schemas.auth import JoinRoomRequest
+from app.schemas.errors import (
+    AlreadyRoomMemberError,
+    OwnerRemovalError,
+    ParticipantNotFoundError,
+    RoomAccessDeniedError,
+    RoomClosedError,
+    RoomFullError,
+    RoomNotFoundError,
+)
 
+class ParticipantService:
+    def __init__(self, db: Session, repo: ParticipantRepository):
+        self.db = db
+        self.repo = repo
 
-def remove_participant(db: Session, user: UserORM, room_id: str, participant_id: str) -> None:
-    room = db.query(RoomORM).filter(RoomORM.id == room_id).first()
-    if not room:
-        raise HTTPException(status_code=404, detail="Комната не найдена")
+    def remove_participant(self, user: UserORM, room_id: UUID, participant_id: UUID) -> None:
+        room = self.repo.get_room_by_id(room_id)
+        if not room:
+            raise RoomNotFoundError("Комната не найдена")
 
-    participant = db.query(RoomParticipantORM).filter(
-        RoomParticipantORM.id == participant_id,
-        RoomParticipantORM.room_id == room_id,
-    ).first()
-    if not participant:
-        raise HTTPException(status_code=404, detail="Участник не найден")
+        participant = self.repo.get_participant_by_id(room_id, participant_id)
+        if not participant:
+            raise ParticipantNotFoundError("Участник не найден")
 
-    if room.owner_id != user.id and participant.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Недостаточно прав для удаления участника")
+        if room.owner_id != user.id and participant.user_id != user.id:
+            raise RoomAccessDeniedError("Недостаточно прав для удаления участника")
 
-    if participant.user_id == room.owner_id:
-        raise HTTPException(status_code=400, detail="Владелец комнаты не может быть удален")
+        if participant.user_id == room.owner_id:
+            raise OwnerRemovalError("Владелец комнаты не может быть удален")
 
-    db.delete(participant)
-    db.commit()
+        self.repo.delete_participant(participant)
+        self.db.commit()
 
+    def join_room(self, user: UserORM, body: JoinRoomRequest) -> RoomORM:
+        room = self.repo.get_room_by_invite_code(body.invite_code)
+        if not room:
+            raise RoomNotFoundError("Комната с таким кодом приглашения не найдена")
 
-def join_room(db: Session, user: UserORM, body: JoinRoomRequest) -> RoomORM:
-    room = db.query(RoomORM).filter(RoomORM.invite_code == body.invite_code).first()
-    if not room:
-        raise HTTPException(status_code=404, detail="Комната с таким кодом приглашения не найдена")
+        if room.status != "open":
+            raise RoomClosedError("Комната закрыта для вступления")
 
-    if room.status != "open":
-        raise HTTPException(status_code=400, detail="Комната закрыта для вступления")
+        already_member = self.repo.get_participant_by_user(room.id, user.id)
+        if already_member:
+            raise AlreadyRoomMemberError("Вы уже состоите в этой комнате")
 
-    already_member = db.query(RoomParticipantORM).filter(
-        RoomParticipantORM.room_id == room.id,
-        RoomParticipantORM.user_id == user.id,
-    ).first()
-    if already_member:
-        raise HTTPException(status_code=400, detail="Вы уже состоите в этой комнате")
+        if room.limit_participants is not None:
+            current_count = self.repo.count_participants(room.id)
+            if current_count >= room.limit_participants:
+                raise RoomFullError("Достигнут лимит участников комнаты")
 
-    if room.limit_participants is not None:
-        current_count = db.query(RoomParticipantORM).filter(RoomParticipantORM.room_id == room.id).count()
-        if current_count >= room.limit_participants:
-            raise HTTPException(status_code=400, detail="Достигнут лимит участников комнаты")
-
-    new_participant = RoomParticipantORM(
-        user_id=user.id,
-        room_id=room.id,
-    )
-    db.add(new_participant)
-    db.commit()
-    db.refresh(room)
-    return room
+        new_participant = RoomParticipantORM(
+            user_id=user.id,
+            room_id=room.id,
+        )
+        self.repo.add_participant(new_participant)
+        self.db.commit()
+        self.db.refresh(room)
+        return room

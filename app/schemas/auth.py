@@ -1,10 +1,10 @@
 from  datetime import datetime
 
 from pydantic import BaseModel, EmailStr
-
+from uuid import UUID
 
 class UserResponse(BaseModel):
-    id: int
+    id: UUID
     username: str
     email: str
     #todo докинуть остальные поля если есть
@@ -26,7 +26,7 @@ class RefreshRequest(BaseModel):
 
 
 class UserOut(BaseModel):
-    id: str
+    id: UUID
     name: str
     email: str
     username: str
@@ -37,14 +37,14 @@ class UserOut(BaseModel):
 
 
 class CreateVoteRequest(BaseModel):
-    option_id: str
+    option_id: UUID
     vote: str
 
 
 class VoteOut(BaseModel):
-    id: str
-    room_participant_id: str
-    option_id: str
+    id: UUID
+    room_participant_id: UUID
+    option_id: UUID
     vote: str
     created_at: datetime
 

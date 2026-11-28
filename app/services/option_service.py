@@ -1,62 +1,63 @@
 from typing import List
+from uuid import UUID
 
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.auth import UserORM, RoomORM, RoomParticipantORM, OptionORM
+from app.models.auth import UserORM
+from app.models.option import OptionORM
+from app.repositories.option_repository import OptionRepository
+from app.schemas.errors import (
+    OptionAccessDeniedError,
+    OptionNotFoundError,
+    RoomAccessDeniedError,
+    RoomNotFoundError,
+)
 from app.schemas.option import CreateOptionRequest
 
+class OptionService:
+    def __init__(self, db: Session, repo: OptionRepository):
+        self.db = db
+        self.repo = repo
 
-def add_option(db: Session, user: UserORM, room_id: str, body: CreateOptionRequest) -> OptionORM:
-    room = db.query(RoomORM).filter(RoomORM.id == room_id).first()
-    if not room:
-        raise HTTPException(status_code=404, detail="Комната не найдена")
+    def add_option(self, user: UserORM, room_id: UUID, body: CreateOptionRequest) -> OptionORM:
+        room = self.repo.get_room_by_id(room_id)
+        if not room:
+            raise RoomNotFoundError("Комната не найдена")
 
-    participant = db.query(RoomParticipantORM).filter(
-        RoomParticipantORM.room_id == room_id,
-        RoomParticipantORM.user_id == user.id,
-    ).first()
-    if not participant:
-        raise HTTPException(status_code=403, detail="Вы не являетесь участником этой комнаты")
+        participant = self.repo.get_participant_by_user(room_id, user.id)
+        if not participant:
+            raise RoomAccessDeniedError("Вы не являетесь участником этой комнаты")
 
-    new_option = OptionORM(
-        room_id=room_id,
-        participant_owner_id=participant.id,
-        title=body.title,
-        description=body.description or "",
-    )
-    db.add(new_option)
-    db.commit()
-    db.refresh(new_option)
-    return new_option
+        new_option = OptionORM(
+            room_id=room_id,
+            participant_owner_id=participant.id,
+            title=body.title,
+            description=body.description or "",
+        )
+        self.repo.add_option(new_option)
+        self.db.commit()
+        self.db.refresh(new_option)
+        return new_option
 
+    def list_options(self, user: UserORM, room_id: UUID) -> List[OptionORM]:
+        room = self.repo.get_room_by_id(room_id)
+        if not room:
+            raise RoomNotFoundError("Комната не найдена")
 
-def list_options(db: Session, user: UserORM, room_id: str) -> List[OptionORM]:
-    room = db.query(RoomORM).filter(RoomORM.id == room_id).first()
-    if not room:
-        raise HTTPException(status_code=404, detail="Комната не найдена")
+        participant = self.repo.get_participant_by_user(room_id, user.id)
+        if not participant:
+            raise RoomAccessDeniedError("Вы не являетесь участником этой комнаты")
 
-    participant = db.query(RoomParticipantORM).filter(
-        RoomParticipantORM.room_id == room_id,
-        RoomParticipantORM.user_id == user.id,
-    ).first()
-    if not participant:
-        raise HTTPException(status_code=403, detail="Вы не являетесь участником этой комнаты")
+        return self.repo.list_options_by_room(room_id)
 
-    return db.query(OptionORM).filter(OptionORM.room_id == room_id).all()
+    def delete_option(self, user: UserORM, room_id: UUID, option_id: UUID) -> None:
+        option = self.repo.get_option_by_id(room_id, option_id)
+        if not option:
+            raise OptionNotFoundError("Вариант не найден")
 
+        participant = self.repo.get_participant_by_user(room_id, user.id)
+        if not participant or option.participant_owner_id != participant.id:
+            raise OptionAccessDeniedError("Нельзя удалить чужой вариант")
 
-def delete_option(db: Session, user: UserORM, room_id: str, option_id: str) -> None:
-    option = db.query(OptionORM).filter(OptionORM.id == option_id, OptionORM.room_id == room_id).first()
-    if not option:
-        raise HTTPException(status_code=404, detail="Вариант не найден")
-
-    participant = db.query(RoomParticipantORM).filter(
-        RoomParticipantORM.room_id == room_id,
-        RoomParticipantORM.user_id == user.id,
-    ).first()
-    if not participant or option.participant_owner_id != participant.id:
-        raise HTTPException(status_code=403, detail="Нельзя удалить чужой вариант")
-
-    db.delete(option)
-    db.commit()
+        self.repo.delete_option(option)
+        self.db.commit()

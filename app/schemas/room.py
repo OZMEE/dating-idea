@@ -2,11 +2,11 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
-
+from uuid import UUID
 
 class RoomOut(BaseModel):
-    id: str
-    owner_id: str
+    id: UUID
+    owner_id: UUID
     title: str
     status: str
     limit_participants: Optional[int] = None
